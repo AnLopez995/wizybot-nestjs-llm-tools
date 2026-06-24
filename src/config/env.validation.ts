@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
@@ -14,6 +14,7 @@ import {
  */
 export class EnvironmentVariables {
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   PORT = 3000;
 

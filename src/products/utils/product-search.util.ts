@@ -11,11 +11,24 @@ export function normalize(text: string): string {
     .trim();
 }
 
+/** Common English words that carry no search signal and would inflate scores. */
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'and', 'or', 'for', 'of', 'to', 'in', 'on', 'with', 'my',
+  'me', 'is', 'are', 'am', 'be', 'do', 'does', 'how', 'what', 'much', 'cost',
+  'costs', 'price', 'looking', 'want', 'need', 'find', 'this', 'that', 'you',
+  'your', 'please', 'some', 'any',
+]);
+
 /** Tokenize normalized text into meaningful words (drop very short tokens). */
 export function tokenize(text: string): string[] {
   return normalize(text)
     .split(' ')
     .filter((token) => token.length > 1);
+}
+
+/** Tokenize and drop stopwords — used for the user query side of the search. */
+export function tokenizeQuery(text: string): string[] {
+  return tokenize(text).filter((token) => !STOPWORDS.has(token));
 }
 
 /**
@@ -48,17 +61,20 @@ const WEIGHT_EMBEDDING = 1;
 /**
  * Score a single product against the (synonym-expanded) query tokens.
  * displayTitle matches weigh most, then productType, then embeddingText.
+ *
+ * Matching is whole-word (token equality), not substring, to avoid false
+ * positives such as "men" matching inside "women".
  */
 function scoreProduct(product: Product, queryTokens: string[]): number {
-  const title = normalize(product.displayTitle);
-  const type = normalize(product.productType);
-  const embedding = normalize(product.embeddingText);
+  const titleTokens = new Set(tokenize(product.displayTitle));
+  const typeTokens = new Set(tokenize(product.productType));
+  const embeddingTokens = new Set(tokenize(product.embeddingText));
 
   let score = 0;
   for (const token of queryTokens) {
-    if (title.includes(token)) score += WEIGHT_TITLE;
-    if (type.includes(token)) score += WEIGHT_TYPE;
-    if (embedding.includes(token)) score += WEIGHT_EMBEDDING;
+    if (titleTokens.has(token)) score += WEIGHT_TITLE;
+    if (typeTokens.has(token)) score += WEIGHT_TYPE;
+    if (embeddingTokens.has(token)) score += WEIGHT_EMBEDDING;
   }
   return score;
 }
@@ -68,7 +84,7 @@ function scoreProduct(product: Product, queryTokens: string[]): number {
  * Products with a zero score are excluded.
  */
 export function searchProducts(query: string, products: Product[], limit = 2): ScoredProduct[] {
-  const queryTokens = expandWithSynonyms(tokenize(query));
+  const queryTokens = expandWithSynonyms(tokenizeQuery(query));
   if (queryTokens.length === 0) {
     return [];
   }

@@ -36,11 +36,15 @@ export class ProductsService implements OnModuleInit {
     }
 
     const fileContent = readFileSync(csvPath, 'utf-8');
+    // NOTE: `trim` is intentionally OFF. Combined with the unescaped quotes in
+    // this catalog (e.g. a 8" knife title) it triggers CSV_NON_TRIMABLE_CHAR
+    // errors; we trim per-field in mapRow instead.
     const rows = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
-      relax_column_count: true, // tolerate malformed rows instead of crashing
-      trim: true,
+      relax_column_count: true, // tolerate rows with wrong field count
+      relax_quotes: true, // tolerate unescaped quotes (e.g. 8" in a title)
+      skip_records_with_error: true, // skip malformed rows instead of crashing
     }) as RawCsvRow[];
 
     this.products = rows
@@ -52,24 +56,29 @@ export class ProductsService implements OnModuleInit {
 
   /** Convert a raw CSV row into a Product, returning null for invalid rows. */
   private mapRow(row: RawCsvRow): Product | null {
-    if (!row.displayTitle && !row.embeddingText) {
+    const clean = (value: string | undefined): string => (value ?? '').trim();
+
+    const displayTitle = clean(row.displayTitle);
+    const embeddingText = clean(row.embeddingText);
+    if (!displayTitle && !embeddingText) {
       return null; // not enough information to be useful
     }
 
-    const { amount, currency } = parsePrice(row.price);
+    const rawPrice = clean(row.price);
+    const { amount, currency } = parsePrice(rawPrice);
 
     return {
-      displayTitle: row.displayTitle ?? '',
-      embeddingText: row.embeddingText ?? '',
-      url: row.url ?? '',
-      imageUrl: row.imageUrl ?? '',
-      productType: row.productType ?? '',
-      discount: row.discount === '1',
-      rawPrice: row.price ?? '',
+      displayTitle,
+      embeddingText,
+      url: clean(row.url),
+      imageUrl: clean(row.imageUrl),
+      productType: clean(row.productType),
+      discount: clean(row.discount) === '1',
+      rawPrice,
       price: amount,
       currency,
-      variants: row.variants ?? '',
-      createDate: row.createDate ?? '',
+      variants: clean(row.variants),
+      createDate: clean(row.createDate),
     };
   }
 

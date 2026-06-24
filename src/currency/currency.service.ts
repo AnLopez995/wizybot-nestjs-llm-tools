@@ -4,6 +4,7 @@ import {
   CurrencyConversionResult,
   OpenExchangeRatesLatestResponse,
 } from './interfaces/currency-conversion.interface';
+import { computeConversion } from './utils/currency-conversion.util';
 
 @Injectable()
 export class CurrencyService {
@@ -39,9 +40,7 @@ export class CurrencyService {
     }
 
     // Rates are USD-based; convert via the USD cross-rate.
-    const convertedRaw = (amount / rates[from]) * rates[to];
-    const convertedAmount = Math.round(convertedRaw * 100) / 100;
-    const exchangeRate = rates[to] / rates[from];
+    const { convertedAmount, exchangeRate } = computeConversion(amount, rates[from], rates[to]);
 
     return {
       originalAmount: amount,

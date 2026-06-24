@@ -36,11 +36,16 @@ export function tokenizeQuery(text: string): string[] {
  * Kept intentionally small; embeddings are out of scope for this assessment.
  */
 const SYNONYMS: Record<string, string[]> = {
-  phone: ['smartphone', 'mobile', 'cellphone', 'iphone', 'android'],
-  watch: ['smartwatch', 'wristwatch', 'clock'],
+  phone: ['smartphone', 'mobile', 'cellphone', 'cell', 'iphone', 'android', 'celular', 'celulares', 'telephone'],
+  phones: ['phone', 'smartphone', 'iphone'],
+  watch: ['smartwatch', 'wristwatch', 'watches', 'clock'],
+  watches: ['watch', 'smartwatch'],
   dad: ['father', 'men', 'mens', 'man'],
-  present: ['gift'],
-  gift: ['present'],
+  father: ['dad', 'men', 'mens', 'man'],
+  mom: ['mother', 'women', 'womens', 'woman'],
+  mother: ['mom', 'women', 'womens', 'woman'],
+  present: ['gift', 'gifts'],
+  gift: ['present', 'presents'],
 };
 
 /** Expand query tokens with their configured synonyms (deduplicated). */
